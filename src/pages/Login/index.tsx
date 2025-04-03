@@ -1,4 +1,6 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+
 import {
   Button,
   Grid2,
@@ -16,8 +18,14 @@ import {
 } from "@mui/material";
 import GoogleIcon from "@mui/icons-material/Google";
 import { VisibilityOff, Visibility } from "@mui/icons-material";
+import { auth, googleProvider } from "../../firebase";
+import { signInWithPopup } from "firebase/auth";
+import { useUser } from "../../hooks/useUser";
+import { User } from "../../contexts/UserContext/types";
 
 export const Login = () => {
+  const { login } = useUser();
+  const navigate = useNavigate();
   const [showPassword, setShowPassword] = useState(false);
   const [credentials, setCredentials] = useState({
     username: "",
@@ -41,14 +49,33 @@ export const Login = () => {
     console.log("Credenciais enviadas:", credentials);
   };
 
+  const handleGoogleLogin = async () => {
+    try {
+      const result = await signInWithPopup(auth, googleProvider);
+      
+      if (result.user) {
+        // Converta o Firebase User para seu tipo User
+        const userData: User = {
+          name: result.user.displayName || 'Usuário',
+          photo: result.user.photoURL || '',
+          email: result.user.email || '',
+          uid: result.user.uid
+        };
+        
+        login(userData); // Agora o tipo está correto
+        navigate('/');
+      }
+    } catch (error) {
+      console.error("Erro no login:", error);
+    }
+  };
   return (
     <Grid2
       container
       justifyContent="center"
       alignItems="center"
       sx={{
-        minHeight: "100vh",
-        position: "relative",
+        height: "100vh",
         "&::before": {
           content: '""',
           position: "absolute",
@@ -211,6 +238,7 @@ export const Login = () => {
             size="large"
             startIcon={<GoogleIcon />}
             sx={{ mb: 3, py: 1.5, color: "white" }}
+            onClick={handleGoogleLogin}
           >
             Entrar com Google
           </Button>
